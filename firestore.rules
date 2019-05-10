@@ -32,8 +32,12 @@ service cloud.firestore {
       return request.auth != null
     }
     // Does the given id match the logged in user's uid?
-    function isOwner(id) {
+    function isUserId(id) {
       return isSignedIn() && request.auth.uid == id
+    }
+    // Is the given field a reference of the current user
+    function isUserRef(field) {
+      return field in resource.data && resource.data[field] == /databases/$(database)/documents/users/$(request.auth.uid)
     }
     // Only use after checking if the field exists
     function val(field) {
@@ -63,38 +67,48 @@ service cloud.firestore {
     }
 
     // TYPES
-    function isString(field) {
-      return string(val(field)) == val(field);
+    function isString(field) { return isValueString(val(field)) }
+    function isValueString(value) {
+      return string(value) == value;
     }
-    function isInteger(value) {
-      return integer(val(field)) == val(field);
+    function isInteger(field) { return isValueInteger(val(field)) }
+    function isValueInteger(value) {
+      return integer(value) == value;
     }
-    function isFloat(value) {
-      return float(val(field)) == val(field);
+    function isFloat(field) { return isValueFloat(val(field)) }
+    function isValueFloat(value) {
+      return float(value) == value;
     }
-    function isBool(field) {
-      return boolean(val(field)) == val(field);
+    function isBool(field) { return isValueBool(val(field)) }
+    function isValueBool(value) {
+      return boolean(value) == value;
     }
-    function isTimestamp(field) {
-      return val(field).toMillis() > 0;
+    function isTimestamp(field) { return isValueTimestamp(val(field)) }
+    function isValueTimestamp(value) {
+      return value.toMillis() > 0;
     }
 
     // Check the field's length. Use 0 to ignore upper or lower limit
-    function hasLength(field, min, max) {
-      return isString(field)
-        && (min == 0 || val(field).size() >= min)
-        && (max == 0 || val(field).size() <= max);
+    function hasLength(field, min, max) { return hasValueLength(val(field), min, max) }
+    function hasValueLength(value, min, max) {
+      return isString(value)
+        && (min == 0 || value.size() >= min)
+        && (max == 0 || value.size() <= max);
     }
     // Is field's value within the given range, inclusive
-    function inRange(field, min, max) {
-      return value >= min && val(field) <= max;
+    function inRange(field, min, max) { return valueInRange(val(field), min, max) }
+    function valueInRange(value, min, max) {
+      return value >= min && value <= max;
     }
     // Use to check for optional values
-    function isNull(field) {
-      return val(field) == null;
+    function isNull(field) { return isValueNull(val(field)) }
+    function isValueNull(value) {
+      return value == null;
     }
-    function isEmail(field) {
-      return isString(field) && val(field).matches("[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}");
+
+    function isEmail(field) { return isValueEmail(val(field)) }
+    function isValueEmail(value) {
+      return isValueString(value) && value.matches("[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}");
     }
 
     function createdWith(fields) {
@@ -104,10 +118,6 @@ service cloud.firestore {
     function matches(field, value) {
       return field in request.resource.data
         && request.resource.data[field] == value
-    }
-
-    function isUser(userField) {
-      return userField in resource.data && resource.data[userField] == /databases/$(database)/documents/users/$(request.auth.uid)
     }
 
     function getUserData() {
