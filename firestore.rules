@@ -81,7 +81,7 @@ service cloud.firestore {
     }
     function isBool(field) { return isValueBool(val(field)) }
     function isValueBool(value) {
-      return boolean(value) == value;
+      return false == value || true == value;
     }
     function isTimestamp(field) { return isValueTimestamp(val(field)) }
     function isValueTimestamp(value) {
@@ -91,7 +91,7 @@ service cloud.firestore {
     // Check the field's length. Use 0 to ignore upper or lower limit
     function hasLength(field, min, max) { return hasValueLength(val(field), min, max) }
     function hasValueLength(value, min, max) {
-      return isString(value)
+      return isValueString(value)
         && (min == 0 || value.size() >= min)
         && (max == 0 || value.size() <= max);
     }
